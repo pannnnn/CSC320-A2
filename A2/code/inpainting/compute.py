@@ -71,7 +71,10 @@ def computeC(psiHatP=None, filledImage=None, confidenceImage=None):
     #########################################
     ## PLACE YOUR CODE BETWEEN THESE LINES ##
     #########################################
-    
+    patch_center = [psiHatP.row(), psiHatP.col()]
+    patch_radius = psiHatP.radius()
+    con_window= copyutils.getWindow(confidenceImage, patch_center, patch_radius)[0]
+    filled, valid = copyutils.getWindow(filledImage, patch_center, patch_radius)
     # Replace this dummy value with your own code
     C = 1    
     #########################################
