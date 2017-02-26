@@ -73,12 +73,13 @@ def computeC(psiHatP=None, filledImage=None, confidenceImage=None):
     #########################################
     patch_center = [psiHatP.row(), psiHatP.col()]
     patch_radius = psiHatP.radius()
-    con_window= copyutils.getWindow(confidenceImage, patch_center, patch_radius)[0]
-    filled, valid = copyutils.getWindow(filledImage, patch_center, patch_radius)
-    # Replace this dummy value with your own code
-    C = 1    
+    filled_window, valid = copyutils.getWindow(filledImage, patch_center, patch_radius)
+    con_window = copyutils.getWindow(confidenceImage, patch_center, patch_radius)[0]
+    filled_valid_area = filled_window[np.where(valid == True)]/255
+    con_valid_area = con_window[np.where(valid == True)]
+    filled_con = (filled_valid_area * con_valid_area).sum()
+    C = filled_con/valid.sum()
     #########################################
-    
     return C
 
 #########################################
@@ -116,12 +117,19 @@ def computeGradient(psiHatP=None, inpaintedImage=None, filledImage=None):
     #########################################
     ## PLACE YOUR CODE BETWEEN THESE LINES ##
     #########################################
-    
-    # Replace these dummy values with your own code
-    Dy = 1
-    Dx = 0    
-    #########################################
-    
+    patch_center = [psiHatP.row(), psiHatP.col()]
+    patch_radius = psiHatP.radius()
+    inpaint_window, valid = copyutils.getWindow(inpaintedImage, patch_center, patch_radius)
+    inpaint_window = cv.cvtColor(inpaint_window, cv.COLOR_BGR2GRAY)
+    filled_window = copyutils.getWindow(filledImage, patch_center, patch_radius)[0]
+    filled_area = inpaint_window * (filled_window/255)
+    scharrx = cv.Scharr(filled_area, cv.CV_32F, 1, 0)
+    scharry = cv.Scharr(filled_area, cv.CV_32F, 0, 1)
+    gradient = np.sqrt(scharrx**2 + scharry**2)
+    i, j= np.unravel_index(gradient.argmax(),gradient.shape)
+    Dy = scharry[i,j]
+    Dx = scharrx[i,j]
+    #############################
     return Dy, Dx
 
 #########################################
@@ -165,10 +173,20 @@ def computeNormal(psiHatP=None, filledImage=None, fillFront=None):
     #########################################
     ## PLACE YOUR CODE BETWEEN THESE LINES ##
     #########################################
-    
-    # Replace these dummy values with your own code
-    Ny = 0
-    Nx = 1    
+    patch_center = [psiHatP.row(), psiHatP.col()]
+    patch_radius = psiHatP.radius()
+    filled_window, valid = copyutils.getWindow(filledImage, patch_center, patch_radius)
+    filled_front_window = copyutils.getWindow(fillFront, patch_center, patch_radius)[0]
+    scharrx = cv.Scharr(filled_front_window, cv.CV_32F, 1, 0)
+    scharry = cv.Scharr(filled_front_window, cv.CV_32F, 0, 1)
+    center_x = filled_front_window.shape[0]//2
+    center_y = filled_front_window.shape[1]//2
+    center = (center_x, center_y)
+    if(np.sum(filled_front_window)==255):
+        Ny = None
+        Nx = None
+    else:
+        Ny = -scharrx[center]
+        Nx = scharry[center]
     #########################################
-
     return Ny, Nx
